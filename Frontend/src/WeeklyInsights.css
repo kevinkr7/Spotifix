@@ -1,0 +1,12 @@
+.insights-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.insight-card {
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.insight-card:hover {
+  transform: translateY(-4px);
+  background: #2a2a2a;
+}

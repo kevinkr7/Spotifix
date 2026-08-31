@@ -17,6 +17,8 @@ public class Fav {
 
     private Long userId;
 
+    private Integer sortOrder;
+
     public long getId() {
         return id;
     }
@@ -39,5 +41,13 @@ public class Fav {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Integer getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }

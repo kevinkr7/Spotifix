@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import com.example.myproject.dto.FavOrderRequest;
 
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RestController
@@ -22,7 +23,7 @@ public class FavController {
 
     @GetMapping
     public List<Fav> getFavorites(HttpSession session) {
-        return favRepository.findByUserId(getUserId(session));
+        return favRepository.findByUserIdOrderBySortOrderAsc(getUserId(session));
     }
 
     @PostMapping("/{songId}")
@@ -34,8 +35,21 @@ public class FavController {
                     Fav favorite = new Fav();
                     favorite.setSongId(songId);
                     favorite.setUserId(userId);
+                    favorite.setSortOrder(Integer.MAX_VALUE); // Default to end of list
                     return favRepository.save(favorite);
                 });
+    }
+
+    @PatchMapping("/order")
+    public void updateOrder(@RequestBody List<FavOrderRequest> orderRequests, HttpSession session) {
+        Long userId = getUserId(session);
+        for (FavOrderRequest request : orderRequests) {
+            favRepository.findByUserIdAndSongId(userId, request.getSongId())
+                    .ifPresent(fav -> {
+                        fav.setSortOrder(request.getSortOrder());
+                        favRepository.save(fav);
+                    });
+        }
     }
 
     @DeleteMapping("/{songId}")

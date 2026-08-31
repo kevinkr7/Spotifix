@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+#Audio files
+*.mp3
+*.wav

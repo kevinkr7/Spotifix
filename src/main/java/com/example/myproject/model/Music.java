@@ -17,6 +17,11 @@ public class Music {
     private String audio_url;
     private Long userId;
 
+    private String genre;
+    private String language;
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
+    private String lyrics;
+
     public long getId() {
         return id;
     }
@@ -60,6 +65,30 @@ public class Music {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getGenre() {
+        return genre;
+    }
+
+    public void setGenre(String genre) {
+        this.genre = genre;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public String getLyrics() {
+        return lyrics;
+    }
+
+    public void setLyrics(String lyrics) {
+        this.lyrics = lyrics;
     }
 
 }

@@ -15,6 +15,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import com.example.myproject.dto.SearchResultDTO;
+import com.example.myproject.service.SearchService;
+import com.example.myproject.service.IntelligentShuffleService;
+import com.example.myproject.model.PlayHistory;
+import com.example.myproject.repository.PlayHistoryRepository;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
@@ -22,8 +39,15 @@ import java.util.List;
 public class MusicController {
 
     private final MusicRepository musicRepository;
-    public MusicController(MusicRepository musicRepository) {
+    private final SearchService searchService;
+    private final IntelligentShuffleService intelligentShuffleService;
+    private final PlayHistoryRepository playHistoryRepository;
+
+    public MusicController(MusicRepository musicRepository, SearchService searchService, IntelligentShuffleService intelligentShuffleService, PlayHistoryRepository playHistoryRepository) {
         this.musicRepository = musicRepository;
+        this.searchService = searchService;
+        this.intelligentShuffleService = intelligentShuffleService;
+        this.playHistoryRepository = playHistoryRepository;
     }
 
     @GetMapping("/songs")
@@ -55,6 +79,28 @@ public class MusicController {
 
         music.setUserId(getUserId(session));
         return musicRepository.save(music);
+    }
+
+    @GetMapping("/search/ai")
+    public List<SearchResultDTO> aiSearch(@RequestParam String q, HttpSession session) {
+        getUserId(session); // Require login
+        return searchService.search(q);
+    }
+
+    @PostMapping("/shuffle/intelligent")
+    public List<Music> getIntelligentShuffle(HttpSession session) {
+        Long userId = getUserId(session);
+        return intelligentShuffleService.generateSmartShuffle(userId);
+    }
+
+    @PostMapping("/history/{songId}")
+    public void recordPlayHistory(@PathVariable long songId, HttpSession session) {
+        Long userId = getUserId(session);
+        PlayHistory history = new PlayHistory();
+        history.setUserId(userId);
+        history.setSongId(songId);
+        history.setPlayedAt(LocalDateTime.now());
+        playHistoryRepository.save(history);
     }
 
 
