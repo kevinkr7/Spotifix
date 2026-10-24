@@ -15,20 +15,25 @@ import java.util.stream.Collectors;
 @Service
 public class ListeningAnalyticsService {
 
-    @Autowired
-    private PlayHistoryRepository historyRepo;
+    private final PlayHistoryRepository historyRepo;
+    private final MusicRepository musicRepo;
 
-    @Autowired
-    private MusicRepository musicRepo;
+    public ListeningAnalyticsService(PlayHistoryRepository historyRepo, MusicRepository musicRepo) {
+        this.historyRepo = historyRepo;
+        this.musicRepo = musicRepo;
+    }
 
     public WeeklyInsightResponse getWeeklyInsights(Long userId) {
-        List<PlayHistory> history = historyRepo.findByUserIdOrderByPlayedAtDesc(userId);
+        if (userId == null) {
+            WeeklyInsightResponse empty = new WeeklyInsightResponse();
+            empty.setSuggestions("Login required.");
+            empty.setMoodDistribution(Collections.emptyMap());
+            return empty;
+        }
 
-        // Filter last 7 days
+        // Query only the last 7 days directly from database
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusDays(7);
-        List<PlayHistory> weeklyHistory = history.stream()
-                .filter(h -> h.getPlayedAt() != null && h.getPlayedAt().isAfter(oneWeekAgo))
-                .collect(Collectors.toList());
+        List<PlayHistory> weeklyHistory = historyRepo.findByUserIdAndPlayedAtAfterOrderByPlayedAtDesc(userId, oneWeekAgo);
 
         WeeklyInsightResponse res = new WeeklyInsightResponse();
 
@@ -39,28 +44,36 @@ public class ListeningAnalyticsService {
             return res;
         }
 
+        List<Long> songIds = weeklyHistory.stream()
+                .map(PlayHistory::getSongId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, Music> songMap = musicRepo.findAllById(songIds).stream()
+                .collect(Collectors.toMap(Music::getId, m -> m, (existing, replacement) -> existing));
+
         Map<String, Integer> moodCount = new HashMap<>();
         Map<String, Integer> genreCount = new HashMap<>();
         Map<String, Integer> artistCount = new HashMap<>();
         Map<String, Integer> languageCount = new HashMap<>();
-        
+
         double[] totalDurationSeconds = new double[1];
-        
-        // Compute streak (unique days)
-        Set<Integer> uniqueDays = new HashSet<>();
+        Set<java.time.LocalDate> uniqueDays = new HashSet<>();
 
         for (PlayHistory h : weeklyHistory) {
-            uniqueDays.add(h.getPlayedAt().getDayOfYear());
-            musicRepo.findById((int) h.getSongId()).ifPresent(song -> {
+            if (h.getPlayedAt() != null) {
+                uniqueDays.add(h.getPlayedAt().toLocalDate());
+            }
+            Music song = songMap.get(h.getSongId());
+            if (song != null) {
                 if (song.getMood() != null) moodCount.put(song.getMood(), moodCount.getOrDefault(song.getMood(), 0) + 1);
                 if (song.getGenre() != null) genreCount.put(song.getGenre(), genreCount.getOrDefault(song.getGenre(), 0) + 1);
                 if (song.getArtist() != null) artistCount.put(song.getArtist(), artistCount.getOrDefault(song.getArtist(), 0) + 1);
                 if (song.getLanguage() != null) languageCount.put(song.getLanguage(), languageCount.getOrDefault(song.getLanguage(), 0) + 1);
-                
-                // Assuming song.getDuration() is an Integer/String, we approximate if needed.
-                // It's a String in previous code? Let's check Music model or just assume 3 minutes (180s) average.
+
+                // Approximate 3 minutes (180s) average duration per track
                 totalDurationSeconds[0] += 180;
-            });
+            }
         }
 
         res.setListeningHours(Math.round((totalDurationSeconds[0] / 3600.0) * 10.0) / 10.0);

@@ -6,7 +6,7 @@ import { ReverseEngine } from "./audio/ReverseEngine";
 import EqualizerPanel from "./components/EqualizerPanel";
 import KaraokeView from "./components/KaraokeView";
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8081";
 
 const resolveAudioUrl = (audioUrl) => {
   if (!audioUrl) return "";
@@ -24,6 +24,75 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
   const [isMuted, setIsMuted]         = useState(false);
   const [repeatMode, setRepeatMode]   = useState(0); // 0 = off, 1 = all, 2 = one
   const [isLiked, setIsLiked]         = useState(false);
+  const [ytNotice, setYtNotice]       = useState(null);
+
+  const isYouTube = Boolean(currentSong && (currentSong.provider === "youtube" || currentSong.videoId));
+
+  useEffect(() => {
+    if (ytNotice) {
+      const t = setTimeout(() => setYtNotice(null), 4500);
+      return () => clearTimeout(t);
+    }
+  }, [ytNotice]);
+
+  useEffect(() => {
+    if (!currentSong?.id) {
+      setIsLiked(false);
+      return;
+    }
+    if (currentSong.isExternal) {
+      fetch(`${API_BASE}/jamendo/favorites/${currentSong.id}/check`, { credentials: "include" })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setIsLiked(!!d.isFavorite); })
+        .catch(() => {});
+    }
+  }, [currentSong?.id, currentSong?.isExternal]);
+
+  const handleToggleLike = async () => {
+    if (!currentSong?.id) return;
+    const nextState = !isLiked;
+    setIsLiked(nextState);
+
+    if (currentSong.isExternal) {
+      try {
+        if (!nextState) {
+          await fetch(`${API_BASE}/jamendo/favorites/${currentSong.id}`, {
+            method: "DELETE",
+            credentials: "include"
+          });
+        } else {
+          await fetch(`${API_BASE}/jamendo/favorites`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              providerTrackId: currentSong.id,
+              title: currentSong.title,
+              artist: currentSong.artist,
+              album: currentSong.album,
+              imageUrl: currentSong.image_url,
+              audioUrl: currentSong.audio_url,
+              duration: currentSong.duration,
+              licenseCcUrl: currentSong.license_ccurl,
+              shareUrl: currentSong.share_url,
+              language: currentSong.language
+            })
+          });
+        }
+      } catch (err) {
+        console.error("Failed to toggle external like:", err);
+      }
+    } else {
+      try {
+        await fetch(`${API_BASE}/favorites/${currentSong.id}`, {
+          method: nextState ? "POST" : "DELETE",
+          credentials: "include"
+        });
+      } catch (err) {
+        console.error("Failed to toggle like:", err);
+      }
+    }
+  };
   const [isDragging, setIsDragging]   = useState(false);
 
   const [crossfadeData, setCrossfadeData] = useState(null);
@@ -64,15 +133,20 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
   }, [isPlaying, eqEngine]);
 
   const handleSkip = (seconds) => {
-    if (audioRef.current && duration) {
-      const oldTime = audioRef.current.currentTime;
+    if (duration) {
+      const oldTime = currentTime;
       let newTime = oldTime + seconds;
       newTime = Math.max(0, Math.min(newTime, duration));
-      audioRef.current.currentTime = newTime;
-      
-      if (currentSong) {
-        fetch(`${API_BASE}/audio/player/seek?songId=${currentSong.id}&from=${oldTime}&to=${newTime}`, { method: 'POST', credentials: 'include' }).catch(console.error);
+      if (isYouTube) {
+        window.dispatchEvent(new CustomEvent("spotifix:yt:seek", { detail: { time: newTime } }));
+      } else if (audioRef.current) {
+        audioRef.current.currentTime = newTime;
+        if (currentSong && !currentSong.isExternal) {
+          fetch(`${API_BASE}/audio/player/seek?songId=${currentSong.id}&from=${oldTime}&to=${newTime}`, { method: 'POST', credentials: 'include' }).catch(console.error);
+        }
       }
+      setCurrentTime(newTime);
+      setProgress((newTime / duration) * 100);
     }
   };
 
@@ -118,24 +192,47 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
 
   // ── Playback control ──────────────────────────────────────────────────────
   useEffect(() => {
+    if (isYouTube) {
+      if (audioRef.current) audioRef.current.pause();
+      window.dispatchEvent(new CustomEvent(isPlaying ? "spotifix:yt:play" : "spotifix:yt:pause"));
+      return;
+    }
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.play().catch(e => console.error("Playback failed:", e));
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, currentSong]);
+  }, [isPlaying, currentSong, isYouTube]);
 
   // ── Volume ────────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (isYouTube) {
+      window.dispatchEvent(new CustomEvent("spotifix:yt:volume", { detail: { volume: isMuted ? 0 : volume } }));
+      return;
+    }
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, isYouTube]);
+
+  // ── YouTube Time Sync ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isYouTube) return;
+    const handleYtTime = (e) => {
+      if (!isDragging) {
+        setCurrentTime(e.detail.currentTime || 0);
+        setDuration(e.detail.duration || 0);
+        setProgress(e.detail.progress || 0);
+      }
+    };
+    window.addEventListener("spotifix:yt:timeupdate", handleYtTime);
+    return () => window.removeEventListener("spotifix:yt:timeupdate", handleYtTime);
+  }, [isYouTube, isDragging]);
 
   // ── Time update ───────────────────────────────────────────────────────────
   const handleTimeUpdate = () => {
-    if (!audioRef.current || isDragging) return;
+    if (isYouTube || !audioRef.current || isDragging) return;
     const ct  = audioRef.current.currentTime;
     const dur = audioRef.current.duration || 0;
     setCurrentTime(ct);
@@ -145,11 +242,17 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
 
   // ── Seekbar: click + drag ─────────────────────────────────────────────────
   const seekTo = (e) => {
-    if (!audioRef.current || !duration) return;
+    if (!duration || !progressRef.current) return;
     const bounds = progressRef.current.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - bounds.left) / bounds.width));
-    audioRef.current.currentTime = pct * duration;
+    const targetSeconds = pct * duration;
+    if (isYouTube) {
+      window.dispatchEvent(new CustomEvent("spotifix:yt:seek", { detail: { time: targetSeconds } }));
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = targetSeconds;
+    }
     setProgress(pct * 100);
+    setCurrentTime(targetSeconds);
   };
 
   const handleMouseDown = (e) => { setIsDragging(true); seekTo(e); };
@@ -236,8 +339,8 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
     );
   }
 
-  const audioUrl = resolveAudioUrl(currentSong.audio_url);
-  const imageUrl = currentSong.image_url;
+  const audioUrl = !isYouTube ? resolveAudioUrl(currentSong.audio_url) : "";
+  const imageUrl = currentSong.image_url || currentSong.thumbnailUrl;
 
   return (
     <div
@@ -247,7 +350,7 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
       onMouseLeave={handleMouseUp}
     >
       {/* Hidden audio element */}
-      {audioUrl && (
+      {audioUrl && !isYouTube && (
         <audio
           key={audioUrl}
           ref={audioRef}
@@ -256,6 +359,10 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleEnded}
           onLoadedMetadata={handleTimeUpdate}
+          onError={(e) => {
+            console.warn("Audio playback error:", e);
+            setIsPlaying(false);
+          }}
         />
       )}
 
@@ -274,19 +381,26 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
         </div>
 
         <div className="pb-song-info">
-          <span className="pb-title">{currentSong.title}</span>
-          <span className="pb-artist">{currentSong.artist}</span>
+          <span className="pb-title">
+            {currentSong.title}
+            {isYouTube && (
+              <span style={{ fontSize: '10px', background: '#ff0000', color: '#fff', padding: '1px 5px', borderRadius: '3px', fontWeight: '800', marginLeft: '6px' }}>
+                YouTube
+              </span>
+            )}
+          </span>
+          <span className="pb-artist">{currentSong.artist || currentSong.channelTitle}</span>
         </div>
 
         {/* Verified / active indicator */}
-        <svg className="pb-verified" width="16" height="16" viewBox="0 0 24 24" fill="#1ed760">
+        <svg className="pb-verified" width="16" height="16" viewBox="0 0 24 24" fill="#fb790d">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5l-4.5-4.5 1.41-1.41L10 13.67l7.09-7.09 1.41 1.41L10 16.5z"/>
         </svg>
 
         {/* Heart / like */}
         <button
           className={`pb-icon ${isLiked ? 'pb-icon--active' : ''}`}
-          onClick={() => setIsLiked(!isLiked)}
+          onClick={handleToggleLike}
           title={isLiked ? "Remove from Liked Songs" : "Save to Liked Songs"}
         >
           <svg width="16" height="16" viewBox="0 0 24 24"
@@ -407,34 +521,87 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
         </div>
       </div>
 
-      {/* ══ RIGHT ══ lyrics · reverse · connect · volume · eq · fullscreen ═══ */}
+      {/* ══ RIGHT ══ Studio Superpowers Dock & Audio Output Controls ═══ */}
       <div className="player-right">
-        
-        {/* EQ Button */}
-        <button className="pb-icon" onClick={() => setShowEQ(true)} title="Equalizer">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
-          </svg>
-        </button>
+        {/* Studio Superpowers Dock */}
+        <div className="deck-superpowers-dock">
+          {/* EQ Button */}
+          <button 
+            className={`superpower-btn ${showEQ ? 'active' : ''}`} 
+            onClick={() => {
+              if (isYouTube) {
+                setYtNotice("Web Audio Studio Equalizer is active for uploaded audio files & Creative Commons tracks. YouTube playback is processed directly through YouTube's official player engine.");
+              } else {
+                setShowEQ(true);
+              }
+            }} 
+            title={isYouTube ? "Equalizer applies to local library & CC tracks" : "Studio Equalizer (10-Band + Bass Boost)"}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <line x1="4" y1="21" x2="4" y2="14" />
+              <line x1="4" y1="10" x2="4" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12" y2="3" />
+              <line x1="20" y1="21" x2="20" y2="16" />
+              <line x1="20" y1="12" x2="20" y2="3" />
+              <circle cx="4" cy="12" r="2" fill="currentColor" />
+              <circle cx="12" cy="10" r="2" fill="currentColor" />
+              <circle cx="20" cy="14" r="2" fill="currentColor" />
+            </svg>
+          </button>
 
-        {/* Reverse Button */}
-        <button 
-          className={`pb-icon ${isReversed ? 'pb-icon--active' : ''}`} 
-          onClick={toggleReverse} 
-          title="Reverse Playback"
-          style={{ opacity: isReversing ? 0.5 : 1 }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-          </svg>
-        </button>
+          {/* Reverse Button */}
+          <button 
+            className={`superpower-btn ${isReversed ? 'active active-reverse' : ''}`} 
+            onClick={() => {
+              if (isYouTube) {
+                setYtNotice("Reverse Audio Engine is available for uploaded audio and Creative Commons media.");
+              } else {
+                toggleReverse();
+              }
+            }} 
+            title={isYouTube ? "Reverse Audio Engine applies to local library & CC audio" : (isReversing ? "Reversing Audio..." : "Reverse Audio Engine")}
+            style={{ opacity: isReversing ? 0.6 : 1 }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="11 19 2 12 11 5 11 19" />
+              <polygon points="22 19 13 12 22 5 22 19" />
+            </svg>
+          </button>
 
-        {/* Karaoke Lyrics */}
-        <button className={`pb-icon ${showKaraoke ? 'pb-icon--active' : ''}`} onClick={toggleKaraoke} title="Karaoke Mode">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-          </svg>
-        </button>
+          {/* Karaoke Lyrics */}
+          <button 
+            className={`superpower-btn ${showKaraoke ? 'active active-karaoke' : ''}`} 
+            onClick={() => {
+              if (isYouTube) {
+                setYtNotice("Real-time vocal attenuation applies to local library and Creative Commons audio streams.");
+              } else {
+                toggleKaraoke();
+              }
+            }} 
+            title={isYouTube ? "Karaoke Mode applies to local library & CC tracks" : "Live Karaoke Mode (Vocal Attenuation + Synced Lyrics)"}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
+
+          {/* Smart Shuffle AI */}
+          {onSmartShuffle && (
+            <button
+              className={`superpower-btn ${isShuffling ? 'active' : ''}`}
+              onClick={onSmartShuffle}
+              title="AI Intelligent Shuffle"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" />
+              </svg>
+            </button>
+          )}
+        </div>
 
         {/* Connect device (decorative) */}
         <button className="pb-icon" title="Connect to a device">
@@ -509,6 +676,35 @@ export default function PlayerBar({ currentSong, isPlaying, setIsPlaying, playli
 
       {showEQ && <EqualizerPanel eqEngine={eqEngine} onClose={() => setShowEQ(false)} />}
       {showKaraoke && <KaraokeView currentSong={currentSong} currentTime={currentTime} onClose={() => { setShowKaraoke(false); if (karaokeEngine) karaokeEngine.setKaraokeMode(false); }} />}
+
+      {ytNotice && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(28, 28, 30, 0.98)',
+          border: '1px solid #fb790d',
+          borderRadius: '8px',
+          padding: '10px 18px',
+          color: '#ffffff',
+          fontSize: '13px',
+          fontWeight: '500',
+          zIndex: 1100,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <span>ℹ️ {ytNotice}</span>
+          <button 
+            onClick={() => setYtNotice(null)} 
+            style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '15px' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

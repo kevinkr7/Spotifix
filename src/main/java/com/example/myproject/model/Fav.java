@@ -1,37 +1,40 @@
 package com.example.myproject.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 @Entity
+@Table(name = "fav", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_fav_user_song", columnNames = {"user_id", "song_id"})
+}, indexes = {
+        @Index(name = "idx_fav_user_sort", columnList = "user_id, sort_order")
+})
 public class Fav {
     @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
-    private long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(name = "song_id")
-    private long songId;
+    @Column(name = "song_id", nullable = false)
+    private Long songId;
 
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "sort_order")
     private Integer sortOrder;
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public long getSongId() {
+    public Long getSongId() {
         return songId;
     }
 
-    public void setSongId(long songId) {
+    public void setSongId(Long songId) {
         this.songId = songId;
     }
 

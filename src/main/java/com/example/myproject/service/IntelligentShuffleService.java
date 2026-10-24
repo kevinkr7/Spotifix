@@ -1,5 +1,6 @@
 package com.example.myproject.service;
 
+import com.example.myproject.model.Fav;
 import com.example.myproject.model.Music;
 import com.example.myproject.model.PlayHistory;
 import com.example.myproject.repository.FavRepository;
@@ -24,10 +25,18 @@ public class IntelligentShuffleService {
     }
 
     public List<Music> generateSmartShuffle(Long userId) {
-        List<Music> allSongs = musicRepository.findAll();
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+
+        List<Music> allSongs = musicRepository.findByUserId(userId);
+        if (allSongs.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         List<PlayHistory> history = playHistoryRepository.findByUserIdOrderByPlayedAtDesc(userId);
         Set<Long> favoriteSongIds = favRepository.findByUserId(userId).stream()
-                .map(fav -> fav.getSongId())
+                .map(Fav::getSongId)
                 .collect(Collectors.toSet());
 
         // Extract context from recent history (last 10 songs)
@@ -36,12 +45,21 @@ public class IntelligentShuffleService {
         Set<String> recentArtists = new HashSet<>();
         Set<Long> recentlyPlayedIds = new HashSet<>();
 
+        List<Long> recentSongIds = recentHistory.stream()
+                .map(PlayHistory::getSongId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, Music> recentSongsMap = musicRepository.findAllById(recentSongIds).stream()
+                .collect(Collectors.toMap(Music::getId, m -> m, (existing, replacement) -> existing));
+
         for (PlayHistory ph : recentHistory) {
             recentlyPlayedIds.add(ph.getSongId());
-            musicRepository.findById((int) ph.getSongId()).ifPresent(m -> {
+            Music m = recentSongsMap.get(ph.getSongId());
+            if (m != null) {
                 if (m.getGenre() != null) recentGenres.add(m.getGenre());
                 if (m.getArtist() != null) recentArtists.add(m.getArtist());
-            });
+            }
         }
 
         // Score each song

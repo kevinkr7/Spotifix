@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8081";
 
 /* ── Per-mood visual identity ─────────────────────────────────────── */
 const MOOD_META = {
@@ -31,7 +31,7 @@ const MOOD_META = {
   Liked: {
     color: "#450af5",
     gradient: "linear-gradient(180deg, #450af5 0%, #121212 400px)",
-    cover: "https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?q=80&w=400&auto=format&fit=crop",
+    cover: "/logo.png",
     label: "Liked Songs",
   },
 };
@@ -188,7 +188,15 @@ export default function SongList({ mood, currentSong, setCurrentSong, isPlaying,
     <div className="playlist-view">
       {/* ── HERO HEADER ──────────────────────────────────────────── */}
       <div className="playlist-hero" style={{ background: meta.gradient }}>
-        <img src={meta.cover} alt={meta.label} className="playlist-hero-cover" />
+        <img 
+          src={meta.cover || "/logo.png"} 
+          alt={meta.label} 
+          className="playlist-hero-cover"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "/logo.png";
+          }}
+        />
         <div className="playlist-hero-info">
           <span className="playlist-hero-type">Public Playlist</span>
           <h1 className="playlist-hero-name" style={{ color: meta.color }}>{meta.label}</h1>
@@ -389,7 +397,15 @@ export default function SongList({ mood, currentSong, setCurrentSong, isPlaying,
                 <div className="pl-col-title">
                   <div className="pl-thumb-wrap">
                     {song.image_url ? (
-                      <img src={song.image_url} alt={song.title} className="pl-thumb" />
+                      <img 
+                        src={song.image_url} 
+                        alt={song.title} 
+                        className="pl-thumb" 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/logo.png";
+                        }}
+                      />
                     ) : (
                       <div className="pl-thumb pl-thumb-placeholder" style={{ background: meta.color + '33' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill={meta.color}>

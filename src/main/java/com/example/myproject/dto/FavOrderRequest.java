@@ -1,14 +1,14 @@
 package com.example.myproject.dto;
 
 public class FavOrderRequest {
-    private long songId;
+    private Long songId;
     private Integer sortOrder;
 
-    public long getSongId() {
+    public Long getSongId() {
         return songId;
     }
 
-    public void setSongId(long songId) {
+    public void setSongId(Long songId) {
         this.songId = songId;
     }
 

@@ -9,7 +9,7 @@ import jakarta.persistence.Id;
 public class Music {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
     private String title;
     private String artist;
     private String mood;
@@ -22,10 +22,10 @@ public class Music {
     @jakarta.persistence.Column(columnDefinition = "TEXT")
     private String lyrics;
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
     public String getTitle() {

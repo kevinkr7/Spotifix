@@ -14,7 +14,7 @@ public class PlaybackSeekHistory {
     private Long id;
 
     private Long userId;
-    private int songId;
+    private Long songId;
     private double seekFrom;
     private double seekTo;
     
@@ -28,8 +28,8 @@ public class PlaybackSeekHistory {
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
-    public int getSongId() { return songId; }
-    public void setSongId(int songId) { this.songId = songId; }
+    public Long getSongId() { return songId; }
+    public void setSongId(Long songId) { this.songId = songId; }
 
     public double getSeekFrom() { return seekFrom; }
     public void setSeekFrom(double seekFrom) { this.seekFrom = seekFrom; }

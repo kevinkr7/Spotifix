@@ -16,14 +16,17 @@ import java.util.stream.Collectors;
 @Service
 public class MoodRecommendationService {
 
-    @Autowired
-    private UserMoodPreferenceRepository moodPrefRepo;
+    private final UserMoodPreferenceRepository moodPrefRepo;
+    private final PlayHistoryRepository historyRepo;
+    private final MusicRepository musicRepo;
 
-    @Autowired
-    private PlayHistoryRepository historyRepo;
-
-    @Autowired
-    private MusicRepository musicRepo;
+    public MoodRecommendationService(UserMoodPreferenceRepository moodPrefRepo,
+                                     PlayHistoryRepository historyRepo,
+                                     MusicRepository musicRepo) {
+        this.moodPrefRepo = moodPrefRepo;
+        this.historyRepo = historyRepo;
+        this.musicRepo = musicRepo;
+    }
 
     public UserMoodPreference getPreferences(Long userId) {
         return moodPrefRepo.findByUserId(userId).orElseGet(() -> {
@@ -55,15 +58,24 @@ public class MoodRecommendationService {
                 // Get top 20 recent plays
                 int limit = Math.min(recentHistory.size(), 20);
                 List<PlayHistory> topRecent = recentHistory.subList(0, limit);
-                
+
+                List<Long> recentSongIds = topRecent.stream()
+                        .map(PlayHistory::getSongId)
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                Map<Long, Music> songMap = musicRepo.findAllById(recentSongIds).stream()
+                        .collect(Collectors.toMap(Music::getId, m -> m, (existing, replacement) -> existing));
+
                 Map<String, Integer> moodCounts = new HashMap<>();
                 for (PlayHistory ph : topRecent) {
-                    musicRepo.findById((int) ph.getSongId()).ifPresent(song -> {
+                    Music song = songMap.get(ph.getSongId());
+                    if (song != null) {
                         String m = song.getMood();
                         if (m != null && !m.isEmpty()) {
                             moodCounts.put(m, moodCounts.getOrDefault(m, 0) + 1);
                         }
-                    });
+                    }
                 }
 
                 if (!moodCounts.isEmpty()) {
@@ -71,7 +83,7 @@ public class MoodRecommendationService {
                     // If inferred differs from explicit, use inferred as passive takes precedence when exploring
                     targetMood = inferredMood;
                     explanation = "Recommended because you've been listening to a lot of " + inferredMood + " music lately.";
-                    
+
                     // Auto-update explicit mood so UI stays in sync
                     pref.setExplicitMood(targetMood);
                     moodPrefRepo.save(pref);

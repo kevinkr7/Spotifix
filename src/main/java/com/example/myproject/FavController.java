@@ -1,14 +1,17 @@
 package com.example.myproject;
 
+import com.example.myproject.dto.FavOrderRequest;
 import com.example.myproject.model.Fav;
 import com.example.myproject.repository.FavRepository;
+import com.example.myproject.repository.MusicRepository;
+import com.example.myproject.util.SessionUtil;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import com.example.myproject.dto.FavOrderRequest;
 
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RestController
@@ -16,19 +19,26 @@ import com.example.myproject.dto.FavOrderRequest;
 public class FavController {
 
     private final FavRepository favRepository;
+    private final MusicRepository musicRepository;
 
-    public FavController(FavRepository favRepository) {
+    public FavController(FavRepository favRepository, MusicRepository musicRepository) {
         this.favRepository = favRepository;
+        this.musicRepository = musicRepository;
     }
 
     @GetMapping
     public List<Fav> getFavorites(HttpSession session) {
-        return favRepository.findByUserIdOrderBySortOrderAsc(getUserId(session));
+        Long userId = SessionUtil.requireUserId(session);
+        return favRepository.findByUserIdOrderBySortOrderAsc(userId);
     }
 
     @PostMapping("/{songId}")
-    public Fav addFavorite(@PathVariable long songId, HttpSession session) {
-        Long userId = getUserId(session);
+    public Fav addFavorite(@PathVariable Long songId, HttpSession session) {
+        Long userId = SessionUtil.requireUserId(session);
+
+        if (!musicRepository.existsByIdAndUserId(songId, userId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Song not found.");
+        }
 
         return favRepository.findByUserIdAndSongId(userId, songId)
                 .orElseGet(() -> {
@@ -40,38 +50,30 @@ public class FavController {
                 });
     }
 
+    @Transactional
     @PatchMapping("/order")
     public void updateOrder(@RequestBody List<FavOrderRequest> orderRequests, HttpSession session) {
-        Long userId = getUserId(session);
+        Long userId = SessionUtil.requireUserId(session);
+        if (orderRequests == null || orderRequests.isEmpty()) {
+            return;
+        }
+
         for (FavOrderRequest request : orderRequests) {
-            favRepository.findByUserIdAndSongId(userId, request.getSongId())
-                    .ifPresent(fav -> {
-                        fav.setSortOrder(request.getSortOrder());
-                        favRepository.save(fav);
-                    });
+            if (request.getSongId() != null) {
+                favRepository.findByUserIdAndSongId(userId, request.getSongId())
+                        .ifPresent(fav -> {
+                            fav.setSortOrder(request.getSortOrder());
+                            favRepository.save(fav);
+                        });
+            }
         }
     }
 
+    @Transactional
     @DeleteMapping("/{songId}")
-    public void deleteFavorite(@PathVariable long songId, HttpSession session) {
-        Long userId = getUserId(session);
+    public void deleteFavorite(@PathVariable Long songId, HttpSession session) {
+        Long userId = SessionUtil.requireUserId(session);
         favRepository.deleteByUserIdAndSongId(userId, songId);
     }
-
-    private Long getUserId(HttpSession session) {
-        Object userId = session.getAttribute("userId");
-        if (userId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required.");
-        }
-
-        if (userId instanceof Long id) {
-            return id;
-        }
-
-        if (userId instanceof Integer id) {
-            return id.longValue();
-        }
-
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid session.");
-    }
 }
+

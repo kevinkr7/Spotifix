@@ -1,13 +1,23 @@
-import { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
-export default function TopBar({ setView, user, onLogout, onHome }) {
+export default function TopBar({ setView, user, onLogout, onHome, onOpenLogin, onOpenSignup }) {
   const [showMenu, setShowMenu] = useState(false);
   const [query, setQuery] = useState("");
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSearch = (e) => {
     const val = e.target.value;
     setQuery(val);
-    // Pass query up if we add global search; for now navigate to search view
     if (val.trim().length > 0) {
       setView('search');
     }
@@ -19,26 +29,30 @@ export default function TopBar({ setView, user, onLogout, onHome }) {
   };
 
   return (
-    <div className="top-bar">
-      <div className="top-bar-left">
-        <img
-          src="/logo.png"
-          alt="Spotifix logo"
-          style={{ height: '36px', width: '36px', objectFit: 'contain', marginRight: '8px', borderRadius: '4px', cursor: 'pointer' }}
-          onClick={handleHomeClick}
-        />
+    <header className="spotify-top-bar">
+      {/* ── Left: Spotifix Icon + Home Circle ── */}
+      <div className="spotify-top-left">
+        <div className="spotify-logo-icon" onClick={handleHomeClick} title="Spotifix Home" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img 
+            src="/logo.png" 
+            alt="Spotifix" 
+            style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'contain' }}
+            onError={(e) => { e.currentTarget.style.display = 'none'; }} 
+          />
+          <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.5px', color: '#ffffff' }}>
+            Spoti<span style={{ color: '#fb790d' }}>fix</span>
+          </span>
+        </div>
 
-        <button className="home-btn" onClick={handleHomeClick} title="Home">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        <button className="spotify-home-circle" onClick={handleHomeClick} title="Home">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.5 3.247a1 1 0 0 0-1 0L4 7.577V20h5v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6h5V7.577l-7.5-4.33z"/>
           </svg>
         </button>
-      </div>
 
-      <div className="top-bar-center">
-        <div className="search-input-wrapper">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* ── Center: Search Capsule ── */}
+        <div className="spotify-search-capsule">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="search-icon">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
@@ -48,86 +62,75 @@ export default function TopBar({ setView, user, onLogout, onHome }) {
             value={query}
             onChange={handleSearch}
             onFocus={() => setView('search')}
+            className="spotify-search-input"
           />
-          {query && (
-            <button
-              onClick={() => { setQuery(""); setView('dashboard'); }}
-              style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}
-            >
-              ×
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="top-bar-right">
-        <button className="mood-prompt-btn" onClick={() => setView('mood-selector')}>
-          What's your mood today?
-        </button>
-      
-        <button className="install-app-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <polyline points="8 12 12 16 16 12"></polyline>
-            <line x1="12" y1="8" x2="12" y2="16"></line>
-          </svg>
-          Install App
-        </button>
-
-        {/* User avatar with dropdown */}
-        <div style={{ position: 'relative' }}>
-          <button
-            className="user-avatar"
-            title={user?.username || 'User'}
-            onClick={() => setShowMenu(!showMenu)}
-          >
-            {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+          <div className="search-browse-divider"></div>
+          <button className="search-browse-btn" onClick={() => setView('search')} title="Browse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM17 7v6l5-3-5-3z"/>
+            </svg>
           </button>
-          {showMenu && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '42px',
-                right: 0,
-                background: '#282828',
-                borderRadius: '8px',
-                padding: '8px',
-                minWidth: '160px',
-                zIndex: 200,
-                boxShadow: '0 16px 48px rgba(0,0,0,0.6)'
-              }}
-            >
-              <div style={{ padding: '8px 12px', fontSize: '14px', color: 'var(--text-secondary)', borderBottom: '1px solid #404040', marginBottom: '4px' }}>
-                @{user?.username}
-              </div>
-              <button
-                onClick={() => { setView('profile'); setShowMenu(false); }}
-                style={{ width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '14px' }}
-                onMouseEnter={e => e.target.style.background = '#3a3a3a'}
-                onMouseLeave={e => e.target.style.background = 'none'}
-              >
-                Profile
-              </button>
-              <button
-                onClick={() => { setView('add'); setShowMenu(false); }}
-                style={{ width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '14px' }}
-                onMouseEnter={e => e.target.style.background = '#3a3a3a'}
-                onMouseLeave={e => e.target.style.background = 'none'}
-              >
-                Upload Song
-              </button>
-              <button
-                onClick={onLogout}
-                style={{ width: '100%', padding: '10px 12px', background: 'none', border: 'none', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '14px' }}
-                onMouseEnter={e => e.target.style.background = '#3a3a3a'}
-                onMouseLeave={e => e.target.style.background = 'none'}
-              >
-                Log out
-              </button>
-            </div>
-          )}
         </div>
       </div>
-    </div>
+
+      {/* ── Right: Premium Links + Auth Actions (Image 3) ── */}
+      <div className="spotify-top-right">
+        <nav className="spotify-top-nav">
+          <button className="nav-text-btn" onClick={() => setView('explore')} style={{ color: 'var(--brand-accent)', fontWeight: '700' }}>Explore</button>
+          <button className="nav-text-btn" onClick={() => setView('dashboard')}>Premium</button>
+          <button className="nav-text-btn" onClick={() => setView('insights')}>Insights</button>
+          <button className="nav-text-btn" onClick={() => setView('add')}>Upload</button>
+          <span className="top-nav-divider">|</span>
+          <button className="nav-install-btn" onClick={() => alert("Spotifix Web Player is ready to stream!")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v8m-4-4 4 4 4-4"/>
+            </svg>
+            <span>Install App</span>
+          </button>
+        </nav>
+
+        {/* Logged in or Logged out state */}
+        {user ? (
+          <div style={{ position: 'relative' }} ref={menuRef}>
+            <button
+              className="spotify-user-badge"
+              onClick={() => setShowMenu(!showMenu)}
+              title={user.username}
+            >
+              <div className="user-avatar-circle">
+                {user.username.charAt(0).toUpperCase()}
+              </div>
+            </button>
+
+            {showMenu && (
+              <div className="spotify-profile-dropdown">
+                <div className="dropdown-username">@{user.username}</div>
+                <button onClick={() => { setView('profile'); setShowMenu(false); }}>Profile</button>
+                <button onClick={() => { setView('add'); setShowMenu(false); }}>Upload Track</button>
+                <button onClick={() => { setView('insights'); setShowMenu(false); }}>Weekly Insights</button>
+                <div className="dropdown-divider"></div>
+                <button className="dropdown-logout" onClick={onLogout}>Log out</button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="spotify-auth-actions">
+            <button 
+              className="spotify-signup-btn" 
+              onClick={onOpenSignup}
+            >
+              Sign up
+            </button>
+            <button 
+              className="spotify-login-btn" 
+              onClick={onOpenLogin}
+            >
+              Log in
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
   );
 }

@@ -14,7 +14,7 @@ public class PlayHistory {
     private Long id;
 
     private Long userId;
-    private long songId;
+    private Long songId;
     private LocalDateTime playedAt;
 
     public Long getId() {
@@ -33,11 +33,11 @@ public class PlayHistory {
         this.userId = userId;
     }
 
-    public long getSongId() {
+    public Long getSongId() {
         return songId;
     }
 
-    public void setSongId(long songId) {
+    public void setSongId(Long songId) {
         this.songId = songId;
     }
 

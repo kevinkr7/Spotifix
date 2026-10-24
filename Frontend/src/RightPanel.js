@@ -1,20 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8081";
 
 export default function RightPanel({ currentSong, isPlaying, setIsPlaying, onClose }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
 
+  useEffect(() => {
+    if (!currentSong?.id) {
+      setIsFavorite(false);
+      return;
+    }
+    if (currentSong.isExternal) {
+      fetch(`${API_BASE}/jamendo/favorites/${currentSong.id}/check`, { credentials: "include" })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setIsFavorite(!!d.isFavorite); })
+        .catch(() => {});
+    }
+  }, [currentSong?.id, currentSong?.isExternal]);
+
   const toggleFavorite = async () => {
     if (!currentSong?.id || favLoading) return;
     setFavLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/favorites/${currentSong.id}`, {
-        method: isFavorite ? "DELETE" : "POST",
-        credentials: "include"
-      });
-      if (res.ok) setIsFavorite(!isFavorite);
+      if (currentSong.isExternal) {
+        if (isFavorite) {
+          const res = await fetch(`${API_BASE}/jamendo/favorites/${currentSong.id}`, {
+            method: "DELETE",
+            credentials: "include"
+          });
+          if (res.ok) setIsFavorite(false);
+        } else {
+          const res = await fetch(`${API_BASE}/jamendo/favorites`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              providerTrackId: currentSong.id,
+              title: currentSong.title,
+              artist: currentSong.artist,
+              album: currentSong.album,
+              imageUrl: currentSong.image_url,
+              audioUrl: currentSong.audio_url,
+              duration: currentSong.duration,
+              licenseCcUrl: currentSong.license_ccurl,
+              shareUrl: currentSong.share_url,
+              language: currentSong.language
+            })
+          });
+          if (res.ok) setIsFavorite(true);
+        }
+      } else {
+        const res = await fetch(`${API_BASE}/favorites/${currentSong.id}`, {
+          method: isFavorite ? "DELETE" : "POST",
+          credentials: "include"
+        });
+        if (res.ok) setIsFavorite(!isFavorite);
+      }
     } catch (e) {
       console.error("Favorite failed:", e);
     } finally {
@@ -106,10 +148,46 @@ export default function RightPanel({ currentSong, isPlaying, setIsPlaying, onClo
         </button>
       </div>
 
-      <div className="right-panel-section">
-        <h3 style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.1em' }}>Mood</h3>
-        <p style={{ fontSize: '16px', fontWeight: '600', marginTop: '6px' }}>{currentSong.mood}</p>
-      </div>
+      {currentSong.provider === 'youtube' ? (
+        <div className="right-panel-section" style={{ marginTop: '12px' }}>
+          <h3 style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.1em' }}>Provider & Attribution</h3>
+          <p style={{ fontSize: '13px', color: '#ff0000', fontWeight: '700', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>YouTube Official Embed</span>
+          </p>
+          {currentSong.youtubeUrl && (
+            <a 
+              href={currentSong.youtubeUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#888888', fontSize: '12px', textDecoration: 'underline', display: 'inline-block', marginTop: '4px' }}
+            >
+              Watch on YouTube ↗
+            </a>
+          )}
+        </div>
+      ) : currentSong.isExternal && (
+        <div className="right-panel-section" style={{ marginTop: '12px' }}>
+          <h3 style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.1em' }}>Catalog & License</h3>
+          <p style={{ fontSize: '13px', color: 'var(--brand-accent)', fontWeight: '600', marginTop: '4px' }}>Jamendo Music (Creative Commons)</p>
+          {currentSong.license_ccurl && (
+            <a 
+              href={currentSong.license_ccurl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#888888', fontSize: '12px', textDecoration: 'underline', display: 'inline-block', marginTop: '4px' }}
+            >
+              View License Details ↗
+            </a>
+          )}
+        </div>
+      )}
+
+      {currentSong.mood && (
+        <div className="right-panel-section">
+          <h3 style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.1em' }}>Mood</h3>
+          <p style={{ fontSize: '16px', fontWeight: '600', marginTop: '6px' }}>{currentSong.mood}</p>
+        </div>
+      )}
 
       <div className="right-panel-section" style={{ marginTop: '12px' }}>
         <h3 style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.1em' }}>Artist</h3>

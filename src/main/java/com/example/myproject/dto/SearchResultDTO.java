@@ -7,6 +7,8 @@ public class SearchResultDTO {
     private double confidenceScore;
     private String matchedReason;
 
+    public SearchResultDTO() {}
+
     public SearchResultDTO(Music music, double confidenceScore, String matchedReason) {
         this.music = music;
         this.confidenceScore = confidenceScore;
