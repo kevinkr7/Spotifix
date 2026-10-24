@@ -5,20 +5,22 @@ import com.example.myproject.model.CrossfadeSettings;
 import com.example.myproject.model.Music;
 import com.example.myproject.repository.CrossfadeSettingsRepository;
 import com.example.myproject.repository.MusicRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CrossfadeService {
 
-    @Autowired
-    private CrossfadeSettingsRepository settingsRepo;
+    private final CrossfadeSettingsRepository settingsRepo;
+    private final MusicRepository musicRepo;
+    private final SongFeatureExtractor featureExtractor;
 
-    @Autowired
-    private MusicRepository musicRepo;
-
-    @Autowired
-    private SongFeatureExtractor featureExtractor;
+    public CrossfadeService(CrossfadeSettingsRepository settingsRepo,
+                            MusicRepository musicRepo,
+                            SongFeatureExtractor featureExtractor) {
+        this.settingsRepo = settingsRepo;
+        this.musicRepo = musicRepo;
+        this.featureExtractor = featureExtractor;
+    }
 
     public CrossfadeSettings getSettings(Long userId) {
         return settingsRepo.findByUserId(userId).orElseGet(() -> {
@@ -36,52 +38,44 @@ public class CrossfadeService {
         return settingsRepo.save(s);
     }
 
-    public CrossfadeResponse analyzeTransition(Long userId, int fromSongId, int toSongId) {
+    public CrossfadeResponse analyzeTransition(Long userId, Long fromSongId, Long toSongId) {
         CrossfadeSettings s = getSettings(userId);
-        
+
         if (!s.isSmartCrossfadeEnabled()) {
             double dur = s.getManualCrossfadeDuration() != null ? s.getManualCrossfadeDuration() : 0.0;
             return new CrossfadeResponse(dur, "None", "Smart Crossfade is disabled.");
         }
 
-        Music from = musicRepo.findById(fromSongId).orElse(null);
-        Music to = musicRepo.findById(toSongId).orElse(null);
+        // Validate track existence and user ownership to prevent cross-user data leaks
+        Music from = musicRepo.findByIdAndUserId(fromSongId, userId).orElse(null);
+        Music to = musicRepo.findByIdAndUserId(toSongId, userId).orElse(null);
 
         if (from == null || to == null) {
-            return new CrossfadeResponse(0, "None", "Could not analyze missing songs.");
+            return new CrossfadeResponse(0, "None", "One or both tracks were not found in your library.");
         }
 
         SongFeatureExtractor.AudioFeatures f1 = featureExtractor.extractFeatures(from);
         SongFeatureExtractor.AudioFeatures f2 = featureExtractor.extractFeatures(to);
 
-        // Transition Logic
-        double duration = 4.0;
-        String curve = "Linear";
-        String explanation = "AI selected a standard transition.";
+        if (f1.measured && f2.measured) {
+            int bpmDiff = Math.abs(f1.bpm - f2.bpm);
+            double energyDiff = Math.abs(f1.energy - f2.energy);
 
-        int bpmDiff = Math.abs(f1.bpm - f2.bpm);
-        double energyDiff = Math.abs(f1.energy - f2.energy);
-
-        if (bpmDiff < 5) {
-            duration = 6.0;
-            curve = "BeatMatch";
-            explanation = "AI selected a 6.0-second beat-matched blend since both songs have similar tempo (~" + f1.bpm + " BPM).";
-        } else if (energyDiff > 0.4 && f2.energy > f1.energy) {
-            // Low energy to high energy transition -> short explosive transition
-            duration = 1.5;
-            curve = "Exponential";
-            explanation = "AI selected a quick 1.5-second transition to match the sudden energy shift.";
-        } else if (energyDiff > 0.4 && f2.energy < f1.energy) {
-            // High to low -> long fade
-            duration = 8.0;
-            curve = "SmoothFade";
-            explanation = "AI selected an 8.0-second smooth fade to gracefully drop the energy level.";
-        } else {
-            duration = 3.2 + (f1.energy * 2.0); // roughly 3.2 to 5.2s
-            curve = "Linear";
-            explanation = String.format("AI selected a %.1f-second smooth transition based on tempo and energy.", duration);
+            if (bpmDiff < 5) {
+                return new CrossfadeResponse(6.0, "BeatMatch",
+                        "Beat-matched blend applied since both songs have similar tempo (~" + f1.bpm + " BPM).");
+            } else if (energyDiff > 0.4 && f2.energy > f1.energy) {
+                return new CrossfadeResponse(1.5, "Exponential",
+                        "Dynamic transition selected to match the energy shift.");
+            } else if (energyDiff > 0.4 && f2.energy < f1.energy) {
+                return new CrossfadeResponse(8.0, "SmoothFade",
+                        "Extended smooth fade selected to lower the energy level.");
+            }
         }
 
-        return new CrossfadeResponse(duration, curve, explanation);
+        // Standard smooth transition fallback
+        double duration = s.getManualCrossfadeDuration() != null ? s.getManualCrossfadeDuration() : 4.0;
+        return new CrossfadeResponse(duration, "Linear",
+                String.format("Standard %.1f-second smooth transition applied.", duration));
     }
 }

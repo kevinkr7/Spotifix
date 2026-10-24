@@ -8,6 +8,8 @@ public class MoodRecommendationResponse {
     private String explanation;
     private List<Music> recommendations;
 
+    public MoodRecommendationResponse() {}
+
     public MoodRecommendationResponse(String currentMood, String explanation, List<Music> recommendations) {
         this.currentMood = currentMood;
         this.explanation = explanation;

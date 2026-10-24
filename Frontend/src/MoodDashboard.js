@@ -1,71 +1,86 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import SongList from "./SongList";
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8081";
 
-const recentPlaylists = [
-  { label: "Liked Songs", image: "linear-gradient(135deg, #450af5, #c4efd9)", value: "Liked" },
-  { label: "Workout Mix", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=100&auto=format&fit=crop", value: "Workout" },
-  { label: "Chill Vibes", image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=100&auto=format&fit=crop", value: "Chill" },
-  { label: "Heartbroken", image: "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=100&auto=format&fit=crop", value: "Heartbroken" },
-  { label: "Green Day", image: "https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?q=80&w=100&auto=format&fit=crop", value: "Happy" },
-  { label: "Skrillex Mix", image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=100&auto=format&fit=crop", value: "Workout" },
-  { label: "Late Night", image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=100&auto=format&fit=crop", value: "Chill" },
-  { label: "Sad Indie", image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=100&auto=format&fit=crop", value: "Heartbroken" }
+// Default Trending Songs (from Image 3)
+const defaultTrending = [
+  {
+    id: 101,
+    title: "Moth To A Flame (with The Weeknd)",
+    artist: "Swedish House Mafia, The Weeknd",
+    image: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop",
+    mood: "Chill",
+    explicit: false
+  },
+  {
+    id: 102,
+    title: "São Paulo (feat. Anitta)",
+    artist: "The Weeknd, Anitta",
+    image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=300&auto=format&fit=crop",
+    mood: "Happy",
+    explicit: true
+  },
+  {
+    id: 103,
+    title: "Solar Eclipse (feat. Don Toliver)",
+    artist: "Drake, Don Toliver",
+    image: "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=300&auto=format&fit=crop",
+    mood: "Workout",
+    explicit: true
+  },
+  {
+    id: 104,
+    title: "Love Me Harder",
+    artist: "Ariana Grande, The Weeknd",
+    image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=300&auto=format&fit=crop",
+    mood: "Happy",
+    explicit: false
+  },
+  {
+    id: 105,
+    title: "Draw You Out - From The Hunger Games",
+    artist: "Noah Kahan, The Hunger Games",
+    image: "/logo.png",
+    mood: "Heartbroken",
+    explicit: false
+  },
+  {
+    id: 106,
+    title: "STORM",
+    artist: "Yung Lean",
+    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300&auto=format&fit=crop",
+    mood: "Chill",
+    explicit: true
+  }
 ];
 
-const dailyMixes = [
-  { label: "Daily Mix 1", desc: "Ariana Grande, Maroon 5, Lady Gaga and more", image: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=200&auto=format&fit=crop", value: "Happy" },
-  { label: "Daily Mix 2", desc: "A.R. Rahman, Hiphop Tamizha, Harris Jayaraj", image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200&auto=format&fit=crop", value: "Chill" },
-  { label: "Daily Mix 3", desc: "Justin Bieber, Celine Dion, Avril Lavigne", image: "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=200&auto=format&fit=crop", value: "Heartbroken" },
-  { label: "Daily Mix 4", desc: "Gopi Sundar, Benny Dayal", image: "https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?q=80&w=200&auto=format&fit=crop", value: "Workout" },
-  { label: "Discover Weekly", desc: "New music updated every Monday.", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=200&auto=format&fit=crop", value: "Chill" }
+// Default Popular Artists (from Image 3)
+const popularArtists = [
+  { name: "The Weeknd", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop" },
+  { name: "Drake", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop" },
+  { name: "Ariana Grande", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop" },
+  { name: "Billie Eilish", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=200&auto=format&fit=crop" },
+  { name: "Post Malone", image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&auto=format&fit=crop" },
+  { name: "Taylor Swift", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=200&auto=format&fit=crop" }
 ];
 
 export default function MoodDashboard({ currentSong, setCurrentSong, isPlaying, setIsPlaying, setPlaylist, initialMood, clearInitialMood }) {
-  const [mood, setMood] = useState(null); // Used for drill down view
-  const [activeFilter, setActiveFilter] = useState("All");
-
-  const [aiMoodData, setAiMoodData] = useState(null);
-  const [explicitMood, setExplicitMood] = useState("Happy");
-  const [loading, setLoading] = useState(true);
-
-  const fetchRecommendations = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/mood/recommendations`, { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setAiMoodData(data);
-        if (data.currentMood) setExplicitMood(data.currentMood);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [mood, setMood] = useState(null);
+  const [userSongs, setUserSongs] = useState([]);
 
   useEffect(() => {
-    fetchRecommendations();
+    // Fetch any songs already uploaded in user's library
+    fetch(`${API_BASE}/songs`, { credentials: "include" })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setUserSongs(data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  const handleMoodSelect = async (m) => {
-    setExplicitMood(m);
-    try {
-      await fetch(`${API_BASE}/mood/preferences`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ explicitMood: m, passiveTrackingEnabled: true }),
-        credentials: "include"
-      });
-      fetchRecommendations();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // If sidebar passed a mood, jump directly to that song list
   useEffect(() => {
     if (initialMood) {
       setMood(initialMood);
@@ -73,18 +88,24 @@ export default function MoodDashboard({ currentSong, setCurrentSong, isPlaying, 
     }
   }, [initialMood, clearInitialMood]);
 
+  const handlePlaySong = (song, queue) => {
+    setPlaylist(queue);
+    setCurrentSong(song);
+    setIsPlaying(true);
+  };
+
   if (mood) {
     return (
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-          <button className="home-btn" onClick={() => setMood(null)}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5"></path>
-              <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-          </button>
-          <h2 style={{ margin: 0, fontSize: '32px' }}>{mood} Tracks</h2>
-        </div>
+      <div style={{ padding: '8px' }}>
+        <button 
+          className="spotify-back-btn" 
+          onClick={() => setMood(null)}
+          title="Back"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+          </svg>
+        </button>
         <SongList
           mood={mood}
           currentSong={currentSong}
@@ -97,105 +118,145 @@ export default function MoodDashboard({ currentSong, setCurrentSong, isPlaying, 
     );
   }
 
-  return (
-    <div>
-      <div className="main-filters">
-        {["All", "Music", "Podcasts"].map(f => (
-          <button
-            key={f}
-            className={`filter-pill ${activeFilter === f ? 'active' : ''}`}
-            onClick={() => setActiveFilter(f)}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+  const allTrending = [...userSongs, ...defaultTrending];
 
-      <div style={{ margin: '24px 0', background: 'linear-gradient(135deg, #1c1c1c, #333)', padding: '24px', borderRadius: '12px' }}>
-        <h2 style={{ fontSize: '24px', marginBottom: '16px' }}>How are you feeling?</h2>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {["Happy", "Calm", "Sad", "Angry", "Motivated", "Relaxed", "Romantic", "Excited"].map(m => (
-            <button
-              key={m}
-              onClick={() => handleMoodSelect(m)}
-              style={{
-                background: explicitMood === m ? 'var(--brand-accent)' : '#242424',
-                color: explicitMood === m ? '#000' : '#fff',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
+  return (
+    <div className="spotify-main-content">
+      {/* ── Section 1: Trending songs (Image 3) ── */}
+      <section className="spotify-shelf-section">
+        <div className="shelf-header">
+          <h2 className="shelf-title">Trending songs</h2>
+          <span className="shelf-show-all" onClick={() => setMood("Happy")}>Show all</span>
+        </div>
+
+        <div className="spotify-cards-grid">
+          {allTrending.slice(0, 6).map((item, idx) => (
+            <div 
+              key={item.id || idx} 
+              className="spotify-track-card"
+              onClick={() => handlePlaySong(item, allTrending)}
             >
-              {m}
-            </button>
+              <div className="card-artwork-wrap">
+                <img 
+                  src={item.image_url || item.image || "/logo.png"} 
+                  alt={item.title} 
+                  className="card-artwork-img"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/logo.png";
+                  }}
+                />
+                {/* Spotify floating green play button */}
+                <button 
+                  className="card-play-button" 
+                  onClick={(e) => { e.stopPropagation(); handlePlaySong(item, allTrending); }}
+                  title="Play"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="black">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="card-info">
+                <h3 className="card-track-title">{item.title}</h3>
+                <div className="card-track-subtitle">
+                  {item.explicit && <span className="explicit-badge">E</span>}
+                  <span>{item.artist}</span>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {loading ? (
-        <div style={{ padding: '32px', color: 'var(--text-secondary)' }}>Loading AI recommendations...</div>
-      ) : aiMoodData && (
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h2 style={{ fontSize: '28px', margin: 0 }}>Recommended for You</h2>
-          </div>
-          <p style={{ color: 'var(--brand-accent)', fontSize: '14px', marginBottom: '24px' }}>
-            {aiMoodData.explanation}
-          </p>
-
-          <div className="mix-grid">
-            {aiMoodData.recommendations && aiMoodData.recommendations.slice(0,5).map((song, i) => (
-              <div key={i} className="mix-card" onClick={() => {
-                setPlaylist(aiMoodData.recommendations);
-                setCurrentSong(song);
-                setIsPlaying(true);
-              }}>
-                <img src={song.image_url || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200"} alt={song.title} className="mix-card-img" />
-                <h3>{song.title}</h3>
-                <p>{song.artist}</p>
-              </div>
-            ))}
-          </div>
+      {/* ── Section 2: Popular artists (Image 3) ── */}
+      <section className="spotify-shelf-section" style={{ marginTop: '36px' }}>
+        <div className="shelf-header">
+          <h2 className="shelf-title">Popular artists</h2>
+          <span className="shelf-show-all">Show all</span>
         </div>
-      )}
 
-      <div className="section-header">
-        <h2>Your Playlists</h2>
-      </div>
-      
-      <div className="recent-grid">
-        {recentPlaylists.map((item, i) => (
-          <div key={i} className="recent-card" onClick={() => setMood(item.value)}>
-            {item.image.startsWith('http') ? (
-              <img src={item.image} alt={item.label} className="recent-card-img" />
-            ) : (
-              <div className="recent-card-img" style={{ background: item.image, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
+        <div className="spotify-cards-grid">
+          {popularArtists.map((artist, idx) => (
+            <div 
+              key={idx} 
+              className="spotify-artist-card"
+              onClick={() => setMood("Happy")}
+            >
+              <div className="artist-artwork-wrap">
+                <img 
+                  src={artist.image} 
+                  alt={artist.name} 
+                  className="artist-artwork-img"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/logo.png";
+                  }}
+                />
+                <button 
+                  className="card-play-button" 
+                  onClick={(e) => { e.stopPropagation(); setMood("Happy"); }}
+                  title="Play Artist"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="black">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
               </div>
-            )}
-            <span className="recent-card-title">{item.label}</span>
-          </div>
-        ))}
-      </div>
 
-      <div className="section-header">
-        <h2>Made For You</h2>
-        <span className="show-all" onClick={() => setMood("Happy")}>Show all</span>
-      </div>
+              <div className="card-info">
+                <h3 className="card-artist-name">{artist.name}</h3>
+                <span className="card-artist-sub">Artist</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <div className="mix-grid">
-        {dailyMixes.map((mix, i) => (
-          <div key={i} className="mix-card" onClick={() => setMood(mix.value)}>
-            <img src={mix.image} alt={mix.label} className="mix-card-img" />
-            <h3>{mix.label}</h3>
-            <p>{mix.desc}</p>
-          </div>
-        ))}
-      </div>
+      {/* ── Section 3: Vibe Playlists ── */}
+      <section className="spotify-shelf-section" style={{ marginTop: '36px', marginBottom: '24px' }}>
+        <div className="shelf-header">
+          <h2 className="shelf-title">Featured Mood Playlists</h2>
+          <span className="shelf-show-all" onClick={() => setMood("Chill")}>Show all</span>
+        </div>
+
+        <div className="spotify-cards-grid">
+          {[
+            { label: "Today's Top Hits", desc: "Jung Kook is on top of the Hottest 50!", img: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=300", mood: "Happy" },
+            { label: "RapCaviar", desc: "New music from Drake, Lil Yachty, and more.", img: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=300", mood: "Workout" },
+            { label: "All Out 2010s", desc: "The biggest songs of the 2010s.", img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300", mood: "Chill" },
+            { label: "Rock Classics", desc: "Rock legends & epic anthems.", img: "/logo.png", mood: "Heartbroken" }
+          ].map((pl, idx) => (
+            <div 
+              key={idx} 
+              className="spotify-track-card"
+              onClick={() => setMood(pl.mood)}
+            >
+              <div className="card-artwork-wrap">
+                <img 
+                  src={pl.img || "/logo.png"} 
+                  alt={pl.label} 
+                  className="card-artwork-img"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/logo.png";
+                  }}
+                />
+                <button className="card-play-button" title="Play">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="black">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
+              </div>
+              <div className="card-info">
+                <h3 className="card-track-title">{pl.label}</h3>
+                <span className="card-track-subtitle">{pl.desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

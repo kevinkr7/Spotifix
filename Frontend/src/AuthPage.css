@@ -1,0 +1,218 @@
+/* ── Spotify Official Replica Auth Styles (Image 1 & 2) ──────────── */
+.spotify-auth-page {
+  min-height: 100vh;
+  background-color: #121212;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Circular", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px 48px;
+}
+
+.spotify-auth-header {
+  margin-bottom: 24px;
+}
+
+.spotify-auth-logo {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spotify-auth-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.spotify-auth-card {
+  width: 100%;
+  max-width: 324px;
+  text-align: center;
+}
+
+.spotify-auth-title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  color: #ffffff;
+  margin-bottom: 32px;
+}
+
+.spotify-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.spotify-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spotify-input-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.spotify-input {
+  background-color: #121212;
+  border: 1px solid #727272;
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.spotify-input:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.spotify-input::placeholder {
+  color: #a7a7a7;
+}
+
+.spotify-input-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spotify-btn-green,
+.spotify-btn-cyan {
+  background-color: #fb790d;
+  color: #ffffff;
+  border: none;
+  border-radius: 500px;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  width: 100%;
+  transition: transform 0.1s, background-color 0.1s;
+}
+
+.spotify-btn-green:hover,
+.spotify-btn-cyan:hover {
+  background-color: #ff912b;
+  transform: scale(1.02);
+}
+
+.spotify-btn-green:disabled,
+.spotify-btn-cyan:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spotify-back-link {
+  background: none;
+  border: none;
+  color: #b3b3b3;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  padding: 4px;
+}
+
+.spotify-back-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.spotify-auth-error {
+  background-color: rgba(226, 33, 52, 0.15);
+  border: 1px solid #e22134;
+  color: #f87171;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 4px;
+}
+
+.spotify-divider {
+  position: relative;
+  text-align: center;
+  margin: 32px 0 24px;
+}
+
+.spotify-divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #292929;
+  z-index: 1;
+}
+
+.spotify-divider span {
+  position: relative;
+  z-index: 2;
+  background-color: #121212;
+  padding: 0 16px;
+  color: #b3b3b3;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Social Buttons ─────────────────────────────────────────────── */
+.spotify-social-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.spotify-social-btn {
+  background: transparent;
+  border: 1px solid #727272;
+  border-radius: 500px;
+  padding: 12px 20px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.spotify-social-btn:hover {
+  border-color: #ffffff;
+  transform: scale(1.01);
+}
+
+.spotify-auth-footer {
+  border-top: 1px solid #292929;
+  padding-top: 24px;
+  font-size: 14px;
+  color: #b3b3b3;
+}
+
+.spotify-link {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.spotify-link:hover {
+  color: #fb790d;
+}

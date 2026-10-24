@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spotifix-backend
+    ports:
+      - "8081:8081"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Reads database settings from .env file or host environment
+      - DB_URL=${DB_URL}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SERVER_PORT=8081
+      - SPOTIFIX_UPLOAD_DIR=/app/uploads
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - JAMENDO_CLIENT_ID=${JAMENDO_CLIENT_ID}
+      - JAMENDO_BASE_URL=${JAMENDO_BASE_URL:-https://api.jamendo.com/v3.0}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      - YOUTUBE_BASE_URL=${YOUTUBE_BASE_URL:-https://www.googleapis.com/youtube/v3}
+    volumes:
+      # Named volume persists audio uploads across container restarts and updates
+      - spotifix-media:/app/uploads
+    restart: unless-stopped
+
+volumes:
+  spotifix-media:
+    name: spotifix_media_volume

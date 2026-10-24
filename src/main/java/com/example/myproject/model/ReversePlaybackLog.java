@@ -14,7 +14,7 @@ public class ReversePlaybackLog {
     private Long id;
 
     private Long userId;
-    private int songId;
+    private Long songId;
     
     private LocalDateTime timestamp;
     private double durationInReverse; // in seconds
@@ -27,8 +27,8 @@ public class ReversePlaybackLog {
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
-    public int getSongId() { return songId; }
-    public void setSongId(int songId) { this.songId = songId; }
+    public Long getSongId() { return songId; }
+    public void setSongId(Long songId) { this.songId = songId; }
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }

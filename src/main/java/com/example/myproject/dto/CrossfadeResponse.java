@@ -5,6 +5,8 @@ public class CrossfadeResponse {
     private String curveType; // e.g., "Linear", "Exponential", "BeatMatch"
     private String explanation;
 
+    public CrossfadeResponse() {}
+
     public CrossfadeResponse(double durationSeconds, String curveType, String explanation) {
         this.durationSeconds = durationSeconds;
         this.curveType = curveType;

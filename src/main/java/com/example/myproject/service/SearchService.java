@@ -20,12 +20,16 @@ public class SearchService {
     }
 
     public List<SearchResultDTO> search(String query) {
-        if (query == null || query.trim().isEmpty()) {
+        return search(query, null);
+    }
+
+    public List<SearchResultDTO> search(String query, Long userId) {
+        if (query == null || query.trim().isEmpty() || userId == null) {
             return new ArrayList<>();
         }
 
         String q = query.toLowerCase().trim();
-        List<Music> allMusic = musicRepository.findAll(); // Usually paginated, but good for now.
+        List<Music> allMusic = musicRepository.findByUserId(userId);
         List<SearchResultDTO> results = new ArrayList<>();
 
         for (Music music : allMusic) {

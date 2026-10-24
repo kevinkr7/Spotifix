@@ -23,8 +23,9 @@ export class AudioContextManager {
     }
 
     attach(mediaElement) {
-        if (this.mediaElement === mediaElement) return; // Already attached
-        
+        // Bug fix: return existing sourceNode when already attached, instead of undefined
+        if (this.mediaElement === mediaElement) return this.sourceNode;
+
         // Disconnect old source if exists
         if (this.sourceNode) {
             this.sourceNode.disconnect();

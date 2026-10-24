@@ -8,6 +8,8 @@ import PlayerBar from "./PlayerBar";
 import TopBar from "./TopBar";
 import RightPanel from "./RightPanel";
 import WeeklyInsights from "./WeeklyInsights";
+import ExploreJamendo from "./ExploreJamendo";
+import YouTubePlayer from "./components/YouTubePlayer";
 
 function MoodSelectorPage({ onSelect }) {
   const [isBuffering, setIsBuffering] = useState(false);
@@ -56,7 +58,7 @@ function MoodSelectorPage({ onSelect }) {
   );
 }
 
-export default function HomePage({ user, onLogout }) {
+export default function HomePage({ user, onLogout, onOpenLogin, onOpenSignup }) {
   const [view, setView] = useState("dashboard");
 
   // Global Player State
@@ -75,17 +77,22 @@ export default function HomePage({ user, onLogout }) {
   // Track play history
   useEffect(() => {
     if (currentSong?.id) {
-      fetch(`${process.env.REACT_APP_API_BASE_URL || "http://localhost:8080"}/history/${currentSong.id}`, {
+      const baseUrl = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE || "http://localhost:8081";
+      const historyUrl = currentSong.isExternal
+        ? `${baseUrl}/jamendo/history/${currentSong.id}?title=${encodeURIComponent(currentSong.title || '')}&artist=${encodeURIComponent(currentSong.artist || '')}`
+        : `${baseUrl}/history/${currentSong.id}`;
+      fetch(historyUrl, {
         method: 'POST',
         credentials: 'include'
       }).catch(console.error);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?.id]);
 
   const handleSmartShuffle = async () => {
     setIsShuffling(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || "http://localhost:8080"}/shuffle/intelligent`, {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_BASE || "http://localhost:8081"}/shuffle/intelligent`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -131,7 +138,7 @@ export default function HomePage({ user, onLogout }) {
 
   return (
     <div className={`app-shell ${!showRightPanel ? 'right-panel-hidden' : ''}`}>
-      <TopBar setView={setView} user={user} onLogout={onLogout} onHome={handleHomeClick} />
+      <TopBar setView={setView} user={user} onLogout={onLogout} onHome={handleHomeClick} onOpenLogin={onOpenLogin} onOpenSignup={onOpenSignup} />
 
       <Sidebar currentView={view} setView={setView} onMoodSelect={handleMoodSelect} />
 
@@ -149,7 +156,17 @@ export default function HomePage({ user, onLogout }) {
               clearInitialMood={() => setSelectedMood(null)}
             />
           )}
-          {view === "add" && <AddSong />}
+          {view === "add" && (
+            <AddSong
+              onUploadSuccess={() => {
+                setHomeKey(prev => prev + 1);
+              }}
+              onNavigateToLibrary={() => {
+                setView('dashboard');
+                setHomeKey(prev => prev + 1);
+              }}
+            />
+          )}
           {view === "profile" && (
             <ProfilePage
               user={user}
@@ -178,6 +195,17 @@ export default function HomePage({ user, onLogout }) {
             />
           )}
           {view === "insights" && <WeeklyInsights />}
+          {view === "explore" && (
+            <ExploreJamendo
+              currentSong={currentSong}
+              setCurrentSong={setCurrentSong}
+              isPlaying={isPlaying}
+              setIsPlaying={setIsPlaying}
+              setPlaylist={setPlaylist}
+              user={user}
+              onOpenLogin={onOpenLogin}
+            />
+          )}
         </div>
       </main>
 
@@ -200,6 +228,14 @@ export default function HomePage({ user, onLogout }) {
         onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
         onSmartShuffle={handleSmartShuffle}
         isShuffling={isShuffling}
+      />
+
+      {/* Official YouTube IFrame Player */}
+      <YouTubePlayer
+        currentSong={currentSong}
+        isPlaying={isPlaying}
+        setIsPlaying={setIsPlaying}
+        onEnded={handleNext}
       />
     </div>
   );

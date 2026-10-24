@@ -9,6 +9,6 @@ import java.util.Optional;
 public interface FavRepository extends JpaRepository<Fav, Long> {
     List<Fav> findByUserId(Long userId);
     List<Fav> findByUserIdOrderBySortOrderAsc(Long userId);
-    Optional<Fav> findByUserIdAndSongId(Long userId, long songId);
-    void deleteByUserIdAndSongId(Long userId, long songId);
+    Optional<Fav> findByUserIdAndSongId(Long userId, Long songId);
+    void deleteByUserIdAndSongId(Long userId, Long songId);
 }

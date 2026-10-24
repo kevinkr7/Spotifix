@@ -32,6 +32,26 @@ build/
 ### VS Code ###
 .vscode/
 
-#Audio files
+# Audio files & uploads
 *.mp3
 *.wav
+*.ogg
+*.flac
+/uploads/*
+!/uploads/.gitkeep
+
+# Node / Frontend dependencies & build
+node_modules/
+Frontend/node_modules/
+Frontend/build/
+
+# OS generated
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# Environment variables & secrets (CRITICAL: NEVER COMMIT SECRETS)
+.env
+.env.*
+!.env.example
+
