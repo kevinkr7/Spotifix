@@ -1,0 +1,103 @@
+/* YouTube IFrame Player styling for Spotifix */
+.spotifix-yt-container {
+  position: fixed;
+  bottom: 96px;
+  right: 20px;
+  width: 340px;
+  background: rgba(18, 18, 18, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  z-index: 990;
+  backdrop-filter: blur(16px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spotifix-yt-container.minimized {
+  width: 240px;
+  height: 48px;
+}
+
+.spotifix-yt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.spotifix-yt-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff0000;
+  letter-spacing: 0.5px;
+}
+
+.spotifix-yt-controls-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spotifix-yt-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.spotifix-yt-btn:hover {
+  color: #ffffff;
+}
+
+.spotifix-yt-iframe-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+  height: 0;
+  background: #000000;
+}
+
+.spotifix-yt-iframe-wrap iframe,
+.spotifix-yt-iframe-wrap #spotifix-yt-player-target {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.spotifix-yt-footer {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.spotifix-yt-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.spotifix-yt-channel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
